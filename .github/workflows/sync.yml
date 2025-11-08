@@ -1,0 +1,35 @@
+name: '自动同步上游仓库'
+
+on:
+  schedule:
+    - cron: '0 7 * * 1,4' # 每周一和周四的7点自动触发
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出目标仓库
+        uses: actions/checkout@v3
+        with:
+          # 可选：指定检出分支，默认由后续步骤中的target_sync_branch决定
+          # ref: 'my-branch'
+          persist-credentials: false # 对私有仓库必要
+
+      - name: 同步上游变更
+        id: sync
+        uses: /k4yt3x/video2x@v3.4.1
+        with:
+          target_sync_branch: 'master' # 你想要同步的目标分支
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # 使用默认密钥进行认证
+          upstream_sync_repo: '/k4yt3x/video2x' # 上游仓库地址
+          upstream_sync_branch: 'master' # 上游的基准分支
+          # 可选：test_mode: 'false' # 测试模式，用于调试
+
+      - name: 输出同步结果
+        if: steps.sync.outputs.has_new_commits == 'true'
+        run: echo "已同步新的提交。"
+
+      - name: 若无新提交提示
+        if: steps.sync.outputs.has_new_commits == 'false'
+        run: echo "当前分支已是最新。"
